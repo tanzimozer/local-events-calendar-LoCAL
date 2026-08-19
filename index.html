@@ -1,0 +1,346 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>LoCAL — Calendar Replica</title>
+<style>
+  :root{
+    --pink:#ff2d78;
+  }
+  *{box-sizing:border-box; margin:0; padding:0; -webkit-font-smoothing:antialiased;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Helvetica Neue",Arial,sans-serif;
+    background:#e5e5e5;
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    min-height:100vh;
+    padding:40px 20px;
+  }
+
+  .toggle-wrap{
+    position:fixed;
+    top:20px;
+    left:50%;
+    transform:translateX(-50%);
+    display:flex;
+    gap:10px;
+    align-items:center;
+    font-size:13px;
+    color:#333;
+    background:#fff;
+    padding:8px 14px;
+    border-radius:20px;
+    box-shadow:0 2px 10px rgba(0,0,0,.1);
+  }
+  .toggle-wrap button{
+    border:none;
+    background:#111;
+    color:#fff;
+    padding:6px 12px;
+    border-radius:14px;
+    font-size:12px;
+    cursor:pointer;
+    font-weight:600;
+  }
+
+  /* ---- Phone frame ---- */
+  .phone{
+    width:375px;
+    height:600px;
+    border-radius:44px;
+    background:#000;
+    padding:14px;
+    box-shadow:0 30px 60px rgba(0,0,0,.35);
+  }
+  .screen{
+    width:100%;
+    height:100%;
+    border-radius:32px;
+    overflow:hidden;
+    position:relative;
+    background:#000;
+    transition:background .2s ease, color .2s ease;
+    display:flex;
+    flex-direction:column;
+  }
+
+  .screen.light{ background:#ffffff; color:#000000; }
+  .screen.dark{ background:#000000; color:#ffffff; }
+
+  /* ---- Notch ---- */
+  .notch{
+    position:absolute;
+    top:0; left:50%;
+    transform:translateX(-50%);
+    width:150px; height:26px;
+    background:#000;
+    border-bottom-left-radius:16px;
+    border-bottom-right-radius:16px;
+    z-index:10;
+  }
+
+  /* ---- Status bar ---- */
+  .statusbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:14px 24px 4px;
+    font-size:14px;
+    font-weight:600;
+  }
+  .statusbar .icons{ display:flex; gap:6px; align-items:center; }
+  .statusbar svg{ display:block; }
+
+  /* ---- Header ---- */
+  .cal-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    padding:6px 20px 8px;
+  }
+  .cal-header h1{
+    font-size:32px;
+    font-weight:700;
+    line-height:1.05;
+  }
+  .cal-header .year{
+    font-size:14px;
+    font-weight:500;
+    color:#8e8e93;
+    margin-top:2px;
+  }
+  .cal-header .icons{
+    display:flex;
+    gap:18px;
+    padding-top:6px;
+  }
+  .cal-header .icons svg{ width:19px; height:19px; }
+  .light .cal-header .icons svg{ stroke:#000; }
+  .dark .cal-header .icons svg{ stroke:#fff; }
+
+  /* ---- Weekday row ---- */
+  .weekdays{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    padding:2px 8px 0;
+  }
+  .weekdays span{
+    text-align:center;
+    font-size:11px;
+    font-weight:600;
+    color:#8e8e93;
+    padding-bottom:4px;
+  }
+
+  /* ---- Date grid ---- */
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(7,1fr);
+    grid-template-rows:repeat(5,1fr);
+    padding:0 8px;
+    flex:0 0 auto;
+  }
+  .day{
+    position:relative;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:flex-start;
+    height:38px;
+    font-size:15px;
+    font-weight:400;
+  }
+  .day .num{
+    width:28px; height:28px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius:50%;
+  }
+  .day.dim .num{ color:#48484a; }
+  .light .day.dim .num{ color:#c7c7cc; }
+  .day.today .num{
+    border:1.5px solid currentColor;
+  }
+  .dots{
+    display:flex;
+    gap:3px;
+    height:5px;
+    margin-top:1px;
+  }
+  .dots span{
+    width:4px; height:4px;
+    border-radius:50%;
+    background:currentColor;
+  }
+  .dots span.pink{ background:var(--pink); }
+
+  /* ---- Divider ---- */
+  .divider{
+    height:1px;
+    background:rgba(120,120,128,.24);
+    margin:10px 20px 0;
+  }
+
+  /* ---- Today agenda ---- */
+  .agenda{
+    padding:14px 20px 20px;
+    flex:1;
+    overflow:hidden;
+  }
+  .agenda h2{
+    font-size:22px;
+    font-weight:700;
+  }
+  .agenda .sub{
+    font-size:13px;
+    color:#8e8e93;
+    margin-top:2px;
+    margin-bottom:14px;
+  }
+  .event{
+    display:flex;
+    align-items:center;
+    gap:12px;
+    padding:10px 0;
+    border-top:1px solid rgba(120,120,128,.2);
+  }
+  .event:first-child{ border-top:none; }
+  .event .bullet{
+    width:9px; height:9px;
+    border-radius:50%;
+    flex:none;
+    background:currentColor;
+  }
+  .event .bullet.pink{ background:var(--pink); }
+  .event .info{ flex:1; display:flex; justify-content:space-between; align-items:baseline; }
+  .event .title{ font-size:16px; }
+  .event.done .title{ text-decoration:line-through; color:#8e8e93; }
+  .event .time{ font-size:13px; color:#8e8e93; }
+
+  svg{ fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+</style>
+</head>
+<body>
+
+<div class="toggle-wrap">
+  <span>Theme</span>
+  <button id="themeBtn" onclick="toggleTheme()">Switch to Light</button>
+</div>
+
+<div class="phone">
+  <div class="screen dark" id="screen">
+    <div class="notch"></div>
+
+    <div class="statusbar">
+      <span id="clock">1:20</span>
+      <div class="icons">
+        <svg width="14" height="14" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 2 L20 20 L12 16 L4 20 Z"/></svg>
+        <svg width="17" height="12" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 20c-4-6-8-8-8-13a8 8 0 0 1 16 0c0 5-4 7-8 13z"/></svg>
+        <svg width="18" height="12" viewBox="0 0 24 24"><rect x="1" y="4" width="20" height="12" rx="2" stroke="currentColor"/><rect x="22" y="8" width="1.5" height="4" fill="currentColor" stroke="none"/><rect x="3" y="6" width="14" height="8" fill="currentColor"/></svg>
+      </div>
+    </div>
+
+    <div class="cal-header">
+      <div>
+        <h1>February</h1>
+        <div class="year">2018</div>
+      </div>
+      <div class="icons">
+        <svg width="19" height="19" viewBox="0 0 24 24" stroke="currentColor"><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <svg width="19" height="19" viewBox="0 0 24 24" stroke="currentColor"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+    </div>
+
+    <div class="weekdays">
+      <span>SUN</span><span>MON</span><span>TUE</span><span>WED</span><span>THU</span><span>FRI</span><span>SAT</span>
+    </div>
+
+    <div class="grid" id="grid"></div>
+
+    <div class="divider"></div>
+
+    <div class="agenda">
+      <h2>Today</h2>
+      <div class="sub">3 Events, 2 Tasks</div>
+
+      <div class="event done">
+        <span class="bullet"></span>
+        <div class="info">
+          <span class="title">Drop off Fed Ex package</span>
+          <span class="time">9:00 AM</span>
+        </div>
+      </div>
+      <div class="event">
+        <span class="bullet pink"></span>
+        <div class="info">
+          <span class="title">Design Review</span>
+          <span class="time">10:00 AM</span>
+        </div>
+      </div>
+      <div class="event">
+        <span class="bullet pink"></span>
+        <div class="info">
+          <span class="title">All Hands</span>
+          <span class="time">11:00 AM</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Feb 2018 grid: Feb 1 2018 was a Thursday, month has 28 days.
+  const prevMonthTail = [28,29,30,31];      // Jan (dim)
+  const currentDays   = Array.from({length:28}, (_,i)=>i+1); // Feb 1-28
+  const nextMonthHead = [1,2,3];            // Mar (dim)
+
+  const dotDates = new Set([5,6,9,10,12,14,15,16,19,21,22,23,26,27,28]);
+  const pinkDates = new Set([9,15,21,23,27]); // dates that show a pink dot
+  const today = 23;
+
+  const grid = document.getElementById('grid');
+
+  function buildDay(num, dim){
+    const cell = document.createElement('div');
+    cell.className = 'day' + (dim ? ' dim' : '') + (!dim && num === today ? ' today' : '');
+
+    const n = document.createElement('div');
+    n.className = 'num';
+    n.textContent = num;
+    cell.appendChild(n);
+
+    if(!dim && dotDates.has(num)){
+      const dotsWrap = document.createElement('div');
+      dotsWrap.className = 'dots';
+      const d1 = document.createElement('span');
+      if(pinkDates.has(num)) d1.classList.add('pink');
+      dotsWrap.appendChild(d1);
+      if(num === today){
+        const d2 = document.createElement('span');
+        d2.classList.add('pink');
+        dotsWrap.appendChild(d2);
+      }
+      cell.appendChild(dotsWrap);
+    }
+    return cell;
+  }
+
+  prevMonthTail.forEach(d => grid.appendChild(buildDay(d, true)));
+  currentDays.forEach(d => grid.appendChild(buildDay(d, false)));
+  nextMonthHead.forEach(d => grid.appendChild(buildDay(d, true)));
+
+  function toggleTheme(){
+    const screen = document.getElementById('screen');
+    const btn = document.getElementById('themeBtn');
+    const icons = document.querySelectorAll('.statusbar svg, .cal-header .icons svg');
+    if(screen.classList.contains('dark')){
+      screen.classList.remove('dark'); screen.classList.add('light');
+      btn.textContent = 'Switch to Dark';
+    } else {
+      screen.classList.remove('light'); screen.classList.add('dark');
+      btn.textContent = 'Switch to Light';
+    }
+  }
+</script>
+</body>
+</html>
